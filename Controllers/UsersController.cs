@@ -14,6 +14,12 @@ using MailKit.Security;
 using Hospital.Services;
 using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.BlazorIdentity.Pages.Manage;
 using System.Security.Cryptography;
+using Microsoft.AspNetCore.Authentication.OAuth.Claims;
+using System.Security.Claims;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using System.IdentityModel.Tokens.Jwt;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Hospital.Controllers
 {
@@ -23,15 +29,17 @@ namespace Hospital.Controllers
     {
         private readonly UserContext _context;
         private readonly IEmailService _emailService;
+        private readonly IConfiguration _configuration;
 
-        public UsersController(UserContext context, IEmailService emailService)
+        public UsersController(UserContext context, IEmailService emailService, IConfiguration configuration)
         {
+            _configuration = configuration;
             _context = context;
             _emailService = emailService;
         }
 
     // GET: api/Users
-    [HttpGet]
+    [HttpGet, Authorize]
         public async Task<ActionResult<IEnumerable<User>>> GetUsers()
         {
             return await _context.Users.ToListAsync();
@@ -99,7 +107,8 @@ namespace Hospital.Controllers
             };
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
-            await _emailService.SendEmailAsync(user.Email, "SUBJECT", "HELLOO");
+            var verificationUrl = "http://localhost:4200/register/verify?token="+user.VerificationToken;
+            await _emailService.SendEmailAsync(user.Email, "Verify your account", verificationUrl);
 
             return CreatedAtAction("GetUser", new { id = user.Id }, user);
         }
@@ -107,12 +116,12 @@ namespace Hospital.Controllers
         public async Task<ActionResult<User>> Login(UserLoginRequest request)
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
-            if (user == null) 
+            if (user == null)
             {
                 return BadRequest("User not found.");
             }
-         
-            if (!VerifyPasswordHash(request.Password, user.PasswordHash, user.PasswordSalt)) 
+
+            if (!VerifyPasswordHash(request.Password, user.PasswordHash, user.PasswordSalt))
             {
                 return BadRequest("Password is incorrect");
             }
@@ -121,27 +130,36 @@ namespace Hospital.Controllers
                 return BadRequest("Not verified!");
             }
 
-            return Ok($"Welcome back, {user.Name}!");
-            
+            string token = CreateToken(user);
 
+            return Ok(new { token });
+        }
+        private string CreateToken(User user)
+        {
+            List<Claim> claims = new List<Claim> {
+                new Claim(ClaimTypes.Email, user.Email),
+            };
+            var Key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+            var cred = new SigningCredentials(Key, SecurityAlgorithms.HmacSha512Signature);
+            var token = new JwtSecurityToken(_configuration["Jwt:Issuer"], _configuration["Jwt:Audience"], null, expires:DateTime.Now.AddDays(1), signingCredentials:cred);
+            var jwt = new JwtSecurityTokenHandler().WriteToken(token);
+            return jwt;
         }
         [HttpPost("verify")]
-        public async Task<ActionResult<User>> verify(string token)
+        public async Task<ActionResult<User>> Verify(string token)
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.VerificationToken == token);
             if (user == null)
             {
-                return BadRequest("Invalid token");
+                return BadRequest(new { message = "Invalid token" }); 
             }
-
+            user.IsActive = true;
             user.VeriviedAt = DateTime.Now;
             await _context.SaveChangesAsync();
 
-
-            return Ok("User verified");
-
-
+            return Ok(new { message = "User verified" }); 
         }
+
         private bool VerifyPasswordHash(string password,  byte[] passwordHash,  byte[] passwordSalt)
         {
             using (var hmac = new HMACSHA512(passwordSalt))

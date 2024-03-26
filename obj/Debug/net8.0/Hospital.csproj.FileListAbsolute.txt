@@ -267,3 +267,8 @@ C:\Users\Nugo\Desktop\Project\hospital-back\Hospital\Hospital\bin\Debug\net8.0\M
 C:\Users\Nugo\Desktop\Project\hospital-back\Hospital\Hospital\bin\Debug\net8.0\MimeKit.dll
 C:\Users\Nugo\Desktop\Project\hospital-back\Hospital\Hospital\bin\Debug\net8.0\SendGrid.dll
 C:\Users\Nugo\Desktop\Project\hospital-back\Hospital\Hospital\bin\Debug\net8.0\StarkbankEcdsa.dll
+C:\Users\Nugo\Desktop\Project\hospital-back\Hospital\Hospital\obj\Debug\net8.0\Hospital.sourcelink.json
+C:\Users\Nugo\Desktop\Project\hospital-back\Hospital\Hospital\bin\Debug\net8.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
+C:\Users\Nugo\Desktop\Project\hospital-back\Hospital\Hospital\bin\Debug\net8.0\Scrutor.dll
+C:\Users\Nugo\Desktop\Project\hospital-back\Hospital\Hospital\bin\Debug\net8.0\Swashbuckle.AspNetCore.Filters.dll
+C:\Users\Nugo\Desktop\Project\hospital-back\Hospital\Hospital\bin\Debug\net8.0\Swashbuckle.AspNetCore.Filters.Abstractions.dll

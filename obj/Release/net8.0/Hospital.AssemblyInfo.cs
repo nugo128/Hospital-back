@@ -11,9 +11,8 @@
 using System;
 using System.Reflection;
 
-[assembly: Microsoft.Extensions.Configuration.UserSecrets.UserSecretsIdAttribute("dab3d2d6-719f-4dfa-ae20-e6d5588ae3bd")]
 [assembly: System.Reflection.AssemblyCompanyAttribute("Hospital")]
-[assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
+[assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
 [assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3b1c4d789c10fc239ea49fb5c8209492e5a8db9d")]
 [assembly: System.Reflection.AssemblyProductAttribute("Hospital")]
