@@ -9,6 +9,9 @@ namespace Hospital.Models
         public string Name { get; set; } = "";
         public string LastName { get; set; } = "";
 
+        public string Role { get;set; } = "user";
+
+        public int Rating { get; set; } = 0;
         public string IDNumber { get; set; } = "";
         public string Email { get; set; } = "";
 
@@ -19,10 +22,12 @@ namespace Hospital.Models
         public bool IsActive { get; set; } = false;
 
         public string? VerificationToken { get; set; } = "";
-        public DateTime? VeriviedAt { get; set; }
+        public DateTime? VerifiedAt { get; set; }
         public string? PasswordResetToken { get; set; } = "";
 
         public DateTime? ActivationCodeExpiration { get; set; } 
+
+        public ICollection<CategoryUser> CategoryUsers { get; set; }    
 
      }
 }

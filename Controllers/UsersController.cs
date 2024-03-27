@@ -20,6 +20,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authorization;
+using static Hospital.Controllers.CategoriesController;
 
 namespace Hospital.Controllers
 {
@@ -39,25 +40,27 @@ namespace Hospital.Controllers
         }
 
     // GET: api/Users
-    [HttpGet, Authorize]
-        public async Task<ActionResult<IEnumerable<User>>> GetUsers()
+    [HttpGet]
+        public async Task<ActionResult<IEnumerable<UserWithCategories>>> GetAllUsersWithCategories()
         {
-            return await _context.Users.ToListAsync();
+            var usersWithCategories = await _context.Users
+                .Include(u => u.CategoryUsers)
+                .ThenInclude(uc => uc.Category)
+                .Select(u => new UserWithCategories
+                {
+                    Id = u.Id,
+                    Name = u.Name,
+                    Email = u.Email,
+                    LastName = u.LastName,
+                    Role = u.Role,
+                    Rating = u.Rating,
+                    Categories = u.CategoryUsers.Select(uc => uc.Category).ToList()
+                })
+                .ToListAsync();
+
+            return Ok(usersWithCategories);
         }
 
-        // GET: api/Users/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<User>> GetUser(int id)
-        {
-            var user = await _context.Users.FindAsync(id);
-
-            if (user == null)
-            {
-                return NotFound();
-            }
-
-            return user;
-        }
 
         // PUT: api/Users/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
@@ -125,7 +128,7 @@ namespace Hospital.Controllers
             {
                 return BadRequest("Password is incorrect");
             }
-            if (user.VeriviedAt == null)
+            if (user.VerifiedAt == null)
             {
                 return BadRequest("Not verified!");
             }
@@ -154,7 +157,7 @@ namespace Hospital.Controllers
                 return BadRequest(new { message = "Invalid token" }); 
             }
             user.IsActive = true;
-            user.VeriviedAt = DateTime.Now;
+            user.VerifiedAt = DateTime.Now;
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "User verified" }); 
