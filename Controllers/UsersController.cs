@@ -31,7 +31,6 @@ namespace Hospital.Controllers
         private readonly UserContext _context;
         private readonly IEmailService _emailService;
         private readonly IConfiguration _configuration;
-
         public UsersController(UserContext context, IEmailService emailService, IConfiguration configuration)
         {
             _configuration = configuration;
@@ -54,7 +53,8 @@ namespace Hospital.Controllers
                     LastName = u.LastName,
                     Role = u.Role,
                     Rating = u.Rating,
-                    Categories = u.CategoryUsers.Select(uc => uc.Category).ToList()
+                    Categories = u.CategoryUsers.Select(uc => uc.Category).ToList(),
+                    Image = u.ProfilePicture
                 })
                 .ToListAsync();
 
@@ -96,10 +96,22 @@ namespace Hospital.Controllers
         // POST: api/Users
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<User>> PostUser(UserRegisterRequest request)
+        public async Task<ActionResult<User>> PostUser([FromForm] UserRegisterRequest request)
         {
             CreatePasswordHash(request.Password, out byte[] passwordHash, out byte[] passwordSalt);
-            var user = new User {
+
+            byte[] imageData = null;
+            if (request.Image != null)
+            {
+                using (var memoryStream = new MemoryStream())
+                {
+                    await request.Image.CopyToAsync(memoryStream);
+                    imageData = memoryStream.ToArray();
+                }
+            }
+
+            var user = new User
+            {
                 Name = request.Name,
                 LastName = request.LastName,
                 IDNumber = request.IDNumber,
@@ -107,14 +119,46 @@ namespace Hospital.Controllers
                 PasswordHash = passwordHash,
                 PasswordSalt = passwordSalt,
                 VerificationToken = CreateRandomToken(),
+                ProfilePicture = imageData
             };
+
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
-            var verificationUrl = "http://localhost:4200/register/verify?token="+user.VerificationToken;
+
+            var verificationUrl = "http://localhost:4200/register/verify?token=" + user.VerificationToken;
             await _emailService.SendEmailAsync(user.Email, "Verify your account", verificationUrl);
 
             return CreatedAtAction("GetUser", new { id = user.Id }, user);
         }
+        [HttpGet("{id}")]
+        public async Task<ActionResult<UserWithCategories>> GetUserWithCategories(int id)
+        {
+            var userWithCategories = await _context.Users
+                .Where(u => u.Id == id)
+                .Include(u => u.CategoryUsers)
+                .ThenInclude(uc => uc.Category)
+                .Select(u => new UserWithCategories
+                {
+                    Id = u.Id,
+                    Name = u.Name,
+                    Email = u.Email,
+                    LastName = u.LastName,
+                    Role = u.Role,
+                    Rating = u.Rating,
+                    Categories = u.CategoryUsers.Select(uc => uc.Category).ToList(),
+                    Image = u.ProfilePicture
+                })
+                .FirstOrDefaultAsync();
+
+            if (userWithCategories == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(userWithCategories);
+        }
+
+
         [HttpPost("login")]
         public async Task<ActionResult<User>> Login(UserLoginRequest request)
         {
@@ -135,7 +179,7 @@ namespace Hospital.Controllers
 
             string token = CreateToken(user);
 
-            return Ok(new { token });
+            return Ok(new { token, user });
         }
         private string CreateToken(User user)
         {
